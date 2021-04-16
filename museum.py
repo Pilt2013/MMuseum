@@ -12,7 +12,7 @@ from async_modbus import modbus_for_url
 
 logging.basicConfig()
 log = logging.getLogger()
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 
 
@@ -55,7 +55,7 @@ async def main_loop(switchboxes):
     resolume_queue.play_idle_video()
 
     while True:
-        log.debug("Main handler loop")
+        #log.debug("Main handler loop")
 
         #Combine all the switchstates into one array
         a = switchboxes[0].switchstate
@@ -69,7 +69,7 @@ async def main_loop(switchboxes):
                     resolume_queue.enqueue(i)
 
         if resolume_queue.isEmpty() and (resolume_queue.playing_tour_video == False):
-            resolume_queue.play_idle_video(60)
+            resolume_queue.play_idle_video(5)
 
         await asyncio.sleep(0.1)
 
@@ -80,7 +80,6 @@ if __name__ == "__main__":
     #4 swithes on each box
     #36 switches total 
     switchboxIPs = [
-    "tcp://192.168.1.105:502", 
     "tcp://192.168.1.106:502", 
     "tcp://192.168.1.107:502",
     "tcp://192.168.1.108:502",

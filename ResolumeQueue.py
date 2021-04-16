@@ -14,6 +14,10 @@ log.setLevel(logging.INFO)
 
 #Deck 2 is cabinets
 
+#Layer 17 is tour video - clip 2
+#boxes will be on layer 16  starting at column 11 (/composition/layers/16/clips/11/connect)
+#waiting videos on 13,14,15
+
 class ResQueue:
     def __init__(self):
         self.items = []
@@ -22,8 +26,9 @@ class ResQueue:
         self.osc_client = SimpleUDPClient("127.0.0.1", 7000)
         self.osc_dispatcher = Dispatcher()
         self.osc_dispatcher.map("/playFinished", self.finish_handler)
+        self.osc_dispatcher.set_default_handler(self.debug_handler)
 
-        self.tour_video_button_id = 2 #COMFIG FILE
+        self.tour_video_button_id = 0 #COMFIG FILE
         self.playing_tour_video = False
         self.playing_idle_video = False
         self.loop = asyncio.get_running_loop()
@@ -42,6 +47,7 @@ class ResQueue:
         return not self.items
 
     def enqueue(self, item):
+        log.info (f"Added item to queue {item}")
         #Disable the queue if the tour video is playing
         if self.playing_tour_video == True:
             return
@@ -67,22 +73,22 @@ class ResQueue:
         #Do we need to do anything about a potential waiting video that is playing or will mike handle that
         log.info ("Playing Tour video")
         #self.osc_client.send_message("/playTour", 1)
-        self._change_deck(1)
-        self._play_column(1)
+        #self._change_deck(1)
+        self._play_column(2)
         self.playing_tour_video = True
 
     def play_box_video(self, box):
         self.playing_idle_video = False
         log.info ("Playing box video %d", box)
         #self.osc_client.send_message("/playVideo", box)
-        self._change_deck(2)
+        #self._change_deck(2)
         self._play_clip(1, box)
 
     def play_box_waiting_video(self,box):
         self.playing_idle_video = False
         log.info ("Playing box waiting video %d", box)
         #self.osc_client.send_message("/playWaiting", box)
-        self._change_deck(2)
+        #self._change_deck(2)
         self._play_clip(2, box)
 
     def play_idle_video(self, delay=0):        
@@ -96,14 +102,15 @@ class ResQueue:
     def _play_idle_video(self):
         log.info ("Playing idle video")
         #self.osc_client.send_message("/playIdle", 1) 
-        self._change_deck(1)
-        self._play_column(2)
+        #self._change_deck(1)
+        self._play_column(3)
 
     def _change_deck(self, deck):
         self.osc_client.send_message(f"/composition/decks/{deck}/select", 1) 
   
     def _play_column(self, column):
         self.osc_client.send_message(f"/composition/columns/{column}/connect", 1)
+        
         #self.osc_client.send_message("/composition/selectedcolumn/connect",1)
  
     def _play_clip(self, layers, clip):
@@ -137,6 +144,14 @@ class ResQueue:
             self.items.remove(item)
         except ValueError:
             log.warning("Button ID does not exist in queue...")
+
+
+        #Calback from resolume to say a video has finished playing
+    def debug_handler(self, address, *args):
+
+        log.debug (f"OSC from Resolume {address}: {args}")
+        self.finish_handler(address, *args)
+
 
 
         #Calback from resolume to say a video has finished playing
