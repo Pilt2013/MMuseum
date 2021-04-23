@@ -52,7 +52,8 @@ async def main_loop(switchboxes):
     resolume_queue = ResQueue()
     await resolume_queue.startOSCserver()
 
-    resolume_queue.play_idle_video()
+    #resolume_queue.play_idle_video()
+    resolume_queue.play_tour_video()
 
     while True:
         #log.debug("Main handler loop")
@@ -90,9 +91,9 @@ if __name__ == "__main__":
     "tcp://192.168.1.113:502",
     ]
 
-    #switchboxIPs = [
-    #"tcp://192.168.1.105:502", 
-    #]   
+    switchboxIPs = [
+    "tcp://192.168.1.105:502", 
+    ]   
 
     loop = asyncio.get_event_loop()
     loop.set_debug(False)

@@ -51,12 +51,15 @@ async def loop():
     global playing
     """Example main loop that only runs for 10 iterations before finishing"""
     while True:
-        await asyncio.sleep(1)
+        await asyncio.sleep(5)
         if playing == True:
             await asyncio.sleep(5)
             playing = False
             print ("play finished")
             client.send_message("/playFinished",1)
+
+        client.send_message("/composition/layers/17/clips/2/connect",3)
+        
 
 
 
