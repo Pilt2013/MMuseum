@@ -52,8 +52,8 @@ async def main_loop(switchboxes):
     resolume_queue = ResQueue()
     await resolume_queue.startOSCserver()
 
-    #resolume_queue.play_idle_video()
-    resolume_queue.play_tour_video()
+    resolume_queue.play_idle_video()
+    #resolume_queue.play_tour_video()
 
     while True:
         #log.debug("Main handler loop")
@@ -69,8 +69,10 @@ async def main_loop(switchboxes):
                 if a[i] == 1:
                     resolume_queue.enqueue(i)
 
-        if resolume_queue.isEmpty() and (resolume_queue.playing_tour_video == False):
-            resolume_queue.play_idle_video(5)
+        #Add some code to play idle video when tour finished           
+
+        #if resolume_queue.isEmpty() and (resolume_queue.playing_tour_video == False):
+        #    resolume_queue.play_idle_video(5)
 
         await asyncio.sleep(0.1)
 
@@ -81,6 +83,7 @@ if __name__ == "__main__":
     #4 swithes on each box
     #36 switches total 
     switchboxIPs = [
+    "tcp://192.168.1.105:502",
     "tcp://192.168.1.106:502", 
     "tcp://192.168.1.107:502",
     "tcp://192.168.1.108:502",
@@ -91,9 +94,9 @@ if __name__ == "__main__":
     "tcp://192.168.1.113:502",
     ]
 
-    switchboxIPs = [
-    "tcp://192.168.1.105:502", 
-    ]   
+    #switchboxIPs = [
+    #"tcp://192.168.1.105:502", 
+    #]   
 
     loop = asyncio.get_event_loop()
     loop.set_debug(False)
