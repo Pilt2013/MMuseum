@@ -46,8 +46,8 @@ class ResQueue:
         self.playing_tour_video = False
         self.playing_idle_video = False
         self.loop = asyncio.get_running_loop()
-        self.current_box_waiting_video_layer = self.box_waiting_video_layer
-        
+        self.current_box_waiting_video_layer = 0
+
     async def startOSCserver(self):
         self.osc_server = AsyncIOOSCUDPServer(("127.0.0.1", 7001), self.osc_dispatcher, self.loop)
         transport, protocol = await self.osc_server.create_serve_endpoint()  # Create datagram endpoint and start serving
@@ -98,14 +98,26 @@ class ResQueue:
         self._play_clip(self.box_video_layer, self.box_video_start_column + box)
 
     def play_box_waiting_video(self,box):
-        self.playing_idle_video = False
         log.info ("Playing box waiting video %d", box)
+
         self._play_waiting(self.current_box_waiting_video_layer, self.box_video_start_column + box)
 
         #Check below
+        self.current_box_waiting_video_layer = self.current_box_waiting_video_layer + 1
+        if self.current_box_waiting_video_layer == (self.limit - 2):
+           self.current_box_waiting_video_layer = 0
+
+
+    def stop_box_waiting_video(self):
+        log.info ("Stopping waiting video")
+        #Check below
         self.current_box_waiting_video_layer = self.current_box_waiting_video_layer - 1
-        if self.current_box_waiting_video_layer == (self.box_waiting_video_layer - self.limit + 1):
-           self.current_box_waiting_video_layer = self.box_waiting_video_layer
+        if self.current_box_waiting_video_layer < 0:
+           self.current_box_waiting_video_layer = 0
+
+        self._play_waiting(self.current_box_waiting_video_layer, self.blank_waiting_video_column)
+
+
 
     def play_idle_video(self, delay=0):        
         if (self.playing_idle_video == False):
@@ -128,7 +140,9 @@ class ResQueue:
         #self.osc_client.send_message("/composition/selectedcolumn/connect",1)
 
     def _play_waiting(self, layers, clip):
-        self.osc_client.send_message(f"/composition/layers/{layers}/clips/{clip}/connect", 1)
+        layer = self.box_waiting_video_layer - layers 
+        log.debug("Waiting layer %d",layer)
+        self.osc_client.send_message(f"/composition/layers/{layer}/clips/{clip}/connect", 1)
 
     def _play_clip(self, layers, clip):
         self.osc_client.send_message(f"/composition/layers/{layers}/clips/{clip}/connect", 1)
@@ -139,7 +153,7 @@ class ResQueue:
         try:
             self.items.pop()  # list function
         except IndexError:
-            print(f"Queue empty...")
+            print("Queue empty...")
 
     def size(self):
         return len(self.items)
@@ -187,31 +201,27 @@ class ResQueue:
             if (layer == self.tour_video_layer) and (clip == self.tour_video_clip) and (args[0] == 1):
                 self.playing_tour_video = False
                 log.info ("Finished playing Tour Video")
+                self.play_idle_video(5)
             return
 
-        #Any return from the idle video??
-        #Is this even needed (do we need to keep playing idle video or will it loop in resolume)
-        #Instead of using a flag, we should proably check the callback id from rsolume
-        #Might need a different dispatcher?
+        #ignore any callbacks when the idle video is active
         if self.playing_idle_video == True:
-            self.playing_idle_video = False
-            log.info ("Finished playing Idle Video")
             return        
         
         if (layer == self.current_layer) and (clip == self.current_clip) and (args[0] == 1):
             #Remove item just played
             self.dequeue()
 
-            #Stop playing the last waiting video
-            self._play_waiting((self.current_box_waiting_video_layer + 1) ,self.blank_waiting_video_column)
-
             #check queue
             if not self.isEmpty():
-                #play next video
-                #self._play_clip(2, self.items[-1])
-                
+
+                #Stop playing the last waiting video
+                self.stop_box_waiting_video()
+
+                #Play the next video
                 self.play_box_video(self.items[-1])
                 log.info("playing Video %d", self.items[-1])
             else:
+                self.playing_idle_video = True
                 log.info ("Finished playing queue")
 
