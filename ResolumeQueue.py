@@ -4,9 +4,9 @@ from pythonosc.udp_client import SimpleUDPClient
 from pythonosc.osc_server import AsyncIOOSCUDPServer
 from pythonosc.dispatcher import Dispatcher
 
-logging.basicConfig()
+#logging.basicConfig()
 log = logging.getLogger()
-log.setLevel(logging.DEBUG)
+#log.setLevel(logging.DEBUG)
 
 #Deck 1 is main loop and tour video
 #Column 1 always tour video
@@ -47,6 +47,7 @@ class ResQueue:
         self.playing_idle_video = False
         self.loop = asyncio.get_running_loop()
         self.current_box_waiting_video_layer = 0
+        self.waiting_list = []
 
     async def startOSCserver(self):
         self.osc_server = AsyncIOOSCUDPServer(("127.0.0.1", 7001), self.osc_dispatcher, self.loop)
@@ -81,7 +82,7 @@ class ResQueue:
                 log.info (f"Added item to queue {item}")
                 self.items.insert(0, item)  # list function
             else:
-                log.info("Queue is full...")
+                log.info("Cant add: Queue is full...")
 
     def play_tour_video(self):
         self.playing_idle_video = False
@@ -98,24 +99,26 @@ class ResQueue:
         self._play_clip(self.box_video_layer, self.box_video_start_column + box)
 
     def play_box_waiting_video(self,box):
-        log.info ("Playing box waiting video %d", box)
 
+        log.info (f"Starting waiting video layer: {self.current_box_waiting_video_layer}")
+        self.waiting_list.append(self.current_box_waiting_video_layer)
+        log.debug (f"Waiting list {self.waiting_list}")
         self._play_waiting(self.current_box_waiting_video_layer, self.box_video_start_column + box)
 
         #Check below
         self.current_box_waiting_video_layer = self.current_box_waiting_video_layer + 1
-        if self.current_box_waiting_video_layer == (self.limit - 2):
+        if self.current_box_waiting_video_layer == (self.limit - 1):
            self.current_box_waiting_video_layer = 0
 
 
     def stop_box_waiting_video(self):
-        log.info ("Stopping waiting video")
+        log.debug ("Stopping waiting video")
         #Check below
-        self.current_box_waiting_video_layer = self.current_box_waiting_video_layer - 1
-        if self.current_box_waiting_video_layer < 0:
-           self.current_box_waiting_video_layer = 0
+        self._play_waiting(self.waiting_list[0], self.blank_waiting_video_column)
+        self.waiting_list.pop(0)
+        log.debug (f"Waiting list {self.waiting_list}")
 
-        self._play_waiting(self.current_box_waiting_video_layer, self.blank_waiting_video_column)
+        #self._play_waiting(self.current_box_waiting_video_layer, self.blank_waiting_video_column)
 
 
 
@@ -141,7 +144,8 @@ class ResQueue:
 
     def _play_waiting(self, layers, clip):
         layer = self.box_waiting_video_layer - layers 
-        log.debug("Waiting layer %d",layer)
+        #log.debug("Waiting layer %d",layer)
+        #log.debug(f"/composition/layers/{layer}/clips/{clip}/connect")
         self.osc_client.send_message(f"/composition/layers/{layer}/clips/{clip}/connect", 1)
 
     def _play_clip(self, layers, clip):
@@ -177,8 +181,8 @@ class ResQueue:
         #Calback from resolume to say a video has finished playing
     def debug_handler(self, address, *args):
 
-        log.warning (f"Unhandled OSC from Resolume {address}: {args}")
-        
+        #log.warning (f"Unhandled OSC from Resolume {address}: {args}")
+        pass
 
 
 
@@ -186,7 +190,7 @@ class ResQueue:
         #Format of "/composition/layers/*/clips/*/connected"
     def video_handler(self, address, *args):
 
-        log.debug (f"OSC from Resolume {address}: {args}")
+        log.debug (f"Handling OSC from Resolume {address}: {args}")
 
         data = address.split("/")
         try:
@@ -220,7 +224,6 @@ class ResQueue:
 
                 #Play the next video
                 self.play_box_video(self.items[-1])
-                log.info("playing Video %d", self.items[-1])
             else:
                 self.playing_idle_video = True
                 log.info ("Finished playing queue")

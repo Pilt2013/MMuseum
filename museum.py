@@ -10,7 +10,7 @@ from async_modbus import modbus_for_url
 # configure the client logging
 # --------------------------------------------------------------------------- #
 
-logging.basicConfig()
+logging.basicConfig(format='%(levelname)s:%(message)s',)
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 
@@ -47,6 +47,8 @@ class SwitchBox:
 
 async def main_loop(switchboxes):
 
+    simulated = True
+
     log.debug ("Starting Main Loop")
 
     resolume_queue = ResQueue()
@@ -58,23 +60,41 @@ async def main_loop(switchboxes):
     while True:
         #log.debug("Main handler loop")
 
-        #Combine all the switchstates into one array
-        a = switchboxes[0].switchstate
-        for i in range(1,len(switchboxes)):
-            a = np.concatenate((a, switchboxes[i].switchstate), axis=None)
+        if not simulated:
+            #Combine all the switchstates into one array
+            a = switchboxes[0].switchstate
+            for i in range(1,len(switchboxes)):
+                a = np.concatenate((a, switchboxes[i].switchstate), axis=None)
 
-        #Handle button press -> Add to queue
-        if (any(a)):
-            for i in range(len(a)):
-                if a[i] == 1:
-                    resolume_queue.enqueue(i)
+            #Handle button press -> Add to queue
+            if (any(a)):
+                for i in range(len(a)):
+                    if a[i] == 1:
+                        resolume_queue.enqueue(i)
 
-        #Add some code to play idle video when tour finished           
+            #Add some code to play idle video when tour finished           
 
-        #if resolume_queue.isEmpty() and (resolume_queue.playing_tour_video == False):
-        #    resolume_queue.play_idle_video(5)
+            #if resolume_queue.isEmpty() and (resolume_queue.playing_tour_video == False):
+            #    resolume_queue.play_idle_video(5)
+            await asyncio.sleep(0.1) 
 
-        await asyncio.sleep(0.1)
+        else: #Simulation
+
+            await asyncio.sleep(5)
+            resolume_queue.enqueue(1)
+            await asyncio.sleep(1)
+            resolume_queue.enqueue(2)
+            await asyncio.sleep(1)
+            resolume_queue.enqueue(3)
+            await asyncio.sleep(1)
+            resolume_queue.enqueue(4)
+            await asyncio.sleep(15)
+            resolume_queue.enqueue(5)
+            await asyncio.sleep(1)
+
+            while True:
+               await asyncio.sleep(0.1) 
+
 
 if __name__ == "__main__":
     #A3 RFID
@@ -94,9 +114,11 @@ if __name__ == "__main__":
     "tcp://192.168.1.113:502",
     ]
 
-    #switchboxIPs = [
-    #"tcp://192.168.1.105:502", 
-    #]   
+    switchboxIPs = [
+    "tcp://192.168.1.105:502", 
+    ]   
+
+    switchboxIPs = [  ] 
 
     loop = asyncio.get_event_loop()
     loop.set_debug(False)

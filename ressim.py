@@ -5,40 +5,19 @@ from pythonosc.udp_client import SimpleUDPClient
 import asyncio
 import logging
 
-playing = False
+playing = []
 logging.basicConfig()
 log = logging.getLogger()
 log.setLevel(logging.INFO)
 
 global video 
 
-def play_tour(address, *args):
-    print ("playTour")
-    global playing
-    playing = True
-
-def play_waiting_handler(address, *args):
-    print ("playWaiting")
-
-def play_idle(address, *args):
-    print ("playIdle")
-
-def play_handler(address, *args):
-    print ("playVideo")
-    log.info (f"{address}: {args}")
-    global playing
-    playing = True
-
 def handler_function(address, *args):
     log.info (f"{address}: {args}")
     global playing
-    playing = True
+    playing.append(address)
 
 dispatcher = Dispatcher()
-dispatcher.map("/playVideo", play_handler)
-dispatcher.map("/playWaiting", play_waiting_handler)
-dispatcher.map("/playTour", play_tour)
-dispatcher.map("/playIdle", play_idle)
 dispatcher.set_default_handler(handler_function)
 client = SimpleUDPClient("127.0.0.1", 7001)
 
@@ -52,13 +31,17 @@ async def loop():
     """Example main loop that only runs for 10 iterations before finishing"""
     while True:
         await asyncio.sleep(5)
-        if playing == True:
+        if playing:
             await asyncio.sleep(5)
-            playing = False
-            print ("play finished")
-            client.send_message("/playFinished",1)
 
-        client.send_message("/composition/layers/17/clips/2/connect",3)
+            if playing[0].split("/")[3] == "16":
+
+                print (f"play finished: {playing[0]}")
+                client.send_message(playing[0] + "ed",1)
+            playing.pop(0)
+
+
+        #client.send_message("/composition/layers/17/clips/2/connect",3)
         
 
 
