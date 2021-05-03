@@ -43,11 +43,11 @@ class SwitchBox:
             if not np.array_equal(self.old_switchstate,self.switchstate):
                 log.debug("Switch changed %s %s", self.url,self.switchstate)
 
-            await asyncio.sleep(0.1) #Maybe not needed
+            #await asyncio.sleep(0.1) #Maybe not needed
 
 async def main_loop(switchboxes):
 
-    simulated = True
+    simulated = False
 
     log.debug ("Starting Main Loop")
 
@@ -114,19 +114,18 @@ if __name__ == "__main__":
     "tcp://192.168.1.113:502",
     ]
 
-    switchboxIPs = [
-    "tcp://192.168.1.105:502", 
-    ]   
-
-    switchboxIPs = [  ] 
+    #switchboxIPs = [
+    #"tcp://192.168.1.105:502", 
+    #]   
 
     loop = asyncio.get_event_loop()
     loop.set_debug(False)
 
     switchboxes = []
+    switchboxes.append(SwitchBox(switchboxIPs[0],loop,5))
     #Create instances of clases
-    for ip in switchboxIPs:
-        switchboxes.append(SwitchBox(ip,loop))
+    for i in range(1,len(switchboxIPs)):
+        switchboxes.append(SwitchBox(switchboxIPs[i],loop))
 
 
 
